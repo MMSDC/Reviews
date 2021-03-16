@@ -1,0 +1,36 @@
+{
+  "name": "reviews",
+  "version": "1.0.0",
+  "description": "Backend optimization of reviews service for System Design Capstone",
+  "main": "mongoose.js",
+  "scripts": {
+    "start": "nodemon server/reviewsServer.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JacobWPeterson/Reviews.git"
+  },
+  "keywords": [
+    "SDC",
+    "reviews",
+    "optimization"
+  ],
+  "author": "Jacob W. Peterson",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/JacobWPeterson/Reviews/issues"
+  },
+  "homepage": "https://github.com/JacobWPeterson/Reviews#readme",
+  "devDependencies": {
+    "eslint": "^7.20.0",
+    "eslint-config-airbnb": "^18.2.1",
+    "eslint-plugin-import": "^2.22.1",
+    "eslint-plugin-jsx-a11y": "^6.4.1",
+    "eslint-plugin-react": "^7.22.0",
+    "eslint-plugin-react-hooks": "^4.2.0"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "nodemon": "^2.0.7"
+  }
+}
