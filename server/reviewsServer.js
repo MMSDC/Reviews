@@ -1,7 +1,7 @@
 var express = require('express')
 var app = express()
 
-const port = 3001;
+const port = 3000;
 
 app.use(express.json());
 
@@ -20,8 +20,10 @@ app.get('/reviews', function (req, res) {
     count: count,
     reviews: [],
   }
-  console.log('hello reviews', page, count, sort)
-  res.status(200).send(`${page} page of reviews, ${count} each, sorted by ${sort} for ${product_id}; ${productReviews}`)
+  console.log('hello reviews', product_id, page, count, sort)
+  // res.status(200).send(`${page} page of reviews, ${count} each, sorted by ${sort} for ${product_id}; ${productReviews}`)
+  res.status(200).send({this: "worked", value: 10000})
+
 })
 
 
