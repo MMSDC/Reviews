@@ -1,8 +1,8 @@
-DROP DATABASE IF EXISTS reviews;
+-- DROP DATABASE IF EXISTS reviews;
 
-CREATE DATABASE reviews;
+-- CREATE DATABASE reviews;
 
-USE reviews;
+-- USE reviews;
 
 CREATE TABLE reviews(
    review_id SERIAL PRIMARY KEY,
@@ -15,28 +15,24 @@ CREATE TABLE reviews(
    recommend BOOLEAN,
    date TIMESTAMP,
    helpfulness SMALLINT,
-   reported BOOLEAN,
+   reported BOOLEAN
 );
 
 CREATE TABLE images(
   review_id INTEGER NOT NULL REFERENCES reviews,
   id SERIAL,
-  url TEXT NOT NULL,
+  url TEXT NOT NULL
 );
 
 CREATE TABLE product_reviews(
   product_id INTEGER NOT NULL,
-  review_id INTEGER NOT NULL REFERENCES reviews,
+  review_id INTEGER NOT NULL REFERENCES reviews
 );
 
 CREATE TABLE characteristics(
+  product_id INTEGER NOT NULL,
   characteristic_id SERIAL,
   characteristic VARCHAR(20) NOT NULL,
   total_from_reviews INTEGER,
-  total_reviews INTEGER,
-);
-
-CREATE TABLE product_characteristics(
-  product_id INTEGER NOT NULL,
-  characteristic_id INTEGER NOT NULL REFERENCES characteristics,
+  total_reviews INTEGER
 );
