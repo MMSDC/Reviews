@@ -29,6 +29,6 @@ CREATE TABLE characteristics(
   total_reviews INTEGER
 );
 
-COPY reviews FROM '/Users/jacobwpeterson/Downloads/reviews.csv' WITH DELIMITER ',' CSV HEADER;
-COPY images FROM '/Users/jacobwpeterson/Downloads/reviews_photos.csv' WITH (FORMAT CSV);
-COPY characteristics (id, product_id, name) FROM '/Users/jacobwpeterson/Downloads/characteristics.csv' WITH DELIMITER ',' CSV HEADER;
+COPY reviews FROM '/Users/jacobwpeterson/Downloads/reviews_cleaned.csv' WITH (FORMAT CSV);
+COPY images FROM '/Users/jacobwpeterson/Downloads/reviews_photos_cleaned.csv' WITH (FORMAT CSV);
+COPY characteristics (id, product_id, name) FROM '/Users/jacobwpeterson/Downloads/characteristics.csv' WITH (FORMAT CSV)v;
