@@ -4,19 +4,16 @@ const readline = require('readline');
 
 const validateImages = require('./validateImages.js');
 
-const fileStream = fs.createReadStream('/Users/jacobwpeterson/Downloads/reviews_photos.csv');
-const writeStream = fs.createWriteStream('/Users/jacobwpeterson/Downloads/reviews_photos_cleaned.csv', { flags: 'a' });
-
-(async function processLineByLine() {
+async function processLineByLine(readFrom, validator, writeTo) {
   try {
     const rl = readline.createInterface({
-      input: fileStream,
+      input: readFrom,
       crlfDelay: Infinity,
     });
 
     rl.on('line', (line) => {
-      validateImages(line, () => {
-        writeStream.write(`${line} \n`);
+      validator(line, () => {
+        writeTo.write(`${line} \n`);
       });
     });
 
@@ -26,4 +23,9 @@ const writeStream = fs.createWriteStream('/Users/jacobwpeterson/Downloads/review
   } catch (err) {
     console.error(err);
   }
-}());
+}
+
+const imagesFileStream = fs.createReadStream('/Users/jacobwpeterson/Downloads/reviews_photos.csv');
+const imagesWriteStream = fs.createWriteStream('/Users/jacobwpeterson/Downloads/reviews_photos_cleaned.csv', { flags: 'a' });
+
+processLineByLine(imagesFileStream, validateImages, imagesWriteStream);
