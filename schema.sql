@@ -1,13 +1,9 @@
--- DROP DATABASE IF EXISTS reviews;
-
--- CREATE DATABASE reviews;
-
 CREATE TABLE reviews(
-   id SERIAL PRIMARY KEY,
+   id INTEGER NOT NULL PRIMARY KEY,
    product_id INTEGER NOT NULL,
    rating SMALLINT,
    date VARCHAR(10) NOT NULL,
-   summary VARCHAR(100) NOT NULL,
+   summary VARCHAR(150) NOT NULL,
    body TEXT NOT NULL,
    recommend BOOLEAN,
    reported BOOLEAN,
@@ -16,6 +12,8 @@ CREATE TABLE reviews(
    response TEXT,
    helpfulness SMALLINT
 );
+
+CREATE INDEX product_reviews_not_reported ON reviews (product_id, reported);
 
 CREATE TABLE images(
   id SERIAL,
@@ -30,3 +28,7 @@ CREATE TABLE characteristics(
   total_from_reviews INTEGER,
   total_reviews INTEGER
 );
+
+COPY reviews FROM '/Users/jacobwpeterson/Downloads/reviews.csv' WITH DELIMITER ',' CSV HEADER;
+COPY images FROM '/Users/jacobwpeterson/Downloads/reviews_photos.csv' WITH (FORMAT CSV, HEADER);
+COPY characteristics (id, product_id, name) FROM '/Users/jacobwpeterson/Downloads/characteristics.csv' WITH DELIMITER ',' CSV HEADER;

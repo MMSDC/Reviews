@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 const express = require('express');
 const db = require('../db/connection.js');
 
@@ -14,8 +15,6 @@ app.get('/reviews', (req, res) => {
   const { count } = req.query;
   const { sort } = req.query;
 
-  // Execute db read/find based on product_id
-
   const productReviews = {
     product: product_id,
     page,
@@ -23,8 +22,16 @@ app.get('/reviews', (req, res) => {
     reviews: [],
   };
 
-  console.log('hello reviews', product_id, page, count, sort);
-  res.status(200).send({ this: 'worked', value: 10000 });
+  // Execute db read/find based on product_id
+  db.query(`SELECT * FROM reviews WHERE product_id = ${product_id} AND reported = false`, (err, response) => {
+    if (err) {
+      // console.log(err.stack);
+      res.status(404).send(err.stack);
+    } else {
+      productReviews.reviews.push(response.rows);
+      res.status(200).send(productReviews);
+    }
+  });
 });
 
 // Get product review metadata
