@@ -1,32 +1,29 @@
-// const fs = require('fs');
-
-// fs.createReadStream('/Users/jacobwpeterson/Downloads/reviews_photos.csv')
-//   .on('error', console.log)
-//   .pipe(parser())
-//   .on('data', async (row) => {
-
-//   })
-//   .on('end', () => {
-//     console.log('file loaded');
-//   });
-
+const { once } = require('events');
 const fs = require('fs');
 const readline = require('readline');
 
-async function processLineByLine() {
-  const fileStream = fs.createReadStream('/Users/jacobwpeterson/Downloads/reviews_photos.csv');
+const validateImages = require('./validateImages.js');
 
-  const rl = readline.createInterface({
-    input: fileStream,
-    crlfDelay: Infinity,
-  });
-  // Note: we use the crlfDelay option to recognize all instances of CR LF
-  // ('\r\n') in input.txt as a single line break.
+const fileStream = fs.createReadStream('/Users/jacobwpeterson/Downloads/reviews_photos.csv');
+const writeStream = fs.createWriteStream('/Users/jacobwpeterson/Downloads/reviews_photos_cleaned.csv', { flags: 'a' });
 
-  for await (const line of rl) {
-    // Each line in input.txt will be successively available here as `line`.
-    console.log(`Line from file: ${line}`);
+(async function processLineByLine() {
+  try {
+    const rl = readline.createInterface({
+      input: fileStream,
+      crlfDelay: Infinity,
+    });
+
+    rl.on('line', (line) => {
+      validateImages(line, () => {
+        writeStream.write(`${line} \n`);
+      });
+    });
+
+    await once(rl, 'close');
+
+    console.log('File processed.');
+  } catch (err) {
+    console.error(err);
   }
-}
-
-processLineByLine();
+}());

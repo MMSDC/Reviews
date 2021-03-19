@@ -30,5 +30,5 @@ CREATE TABLE characteristics(
 );
 
 COPY reviews FROM '/Users/jacobwpeterson/Downloads/reviews.csv' WITH DELIMITER ',' CSV HEADER;
-COPY images FROM '/Users/jacobwpeterson/Downloads/reviews_photos.csv' WITH (FORMAT CSV, HEADER);
+COPY images FROM '/Users/jacobwpeterson/Downloads/reviews_photos.csv' WITH (FORMAT CSV);
 COPY characteristics (id, product_id, name) FROM '/Users/jacobwpeterson/Downloads/characteristics.csv' WITH DELIMITER ',' CSV HEADER;
