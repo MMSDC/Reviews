@@ -1,89 +1,153 @@
-var express = require('express')
-var app = express()
+/* eslint-disable camelcase */
+const express = require('express');
+const db = require('../db/connection.js');
 
-const port = 3000;
+const app = express();
+
+const port = 3002;
+
+let memcache = {
+  ratings: {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+  },
+  recommended: {
+    0: 0,
+    1: 0,
+  },
+};
+
+const clearMemcache = () => {
+  memcache = {
+    ratings: {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    },
+    recommended: {
+      0: 0,
+      1: 0,
+    },
+  };
+};
 
 app.use(express.json());
 
-//Get all product reviews
-app.get('/reviews', function (req, res) {
-  const product_id = req.query.product_id;
-  const page = req.query.page;
-  const count = req.query.count;
-  const sort = req.query.sort;
+// Get all product reviews
+app.get('/reviews', (req, res) => {
+  clearMemcache();
 
-  //Execute db read/find based on product_id
+  const { product_id } = req.query;
+  const { page } = req.query;
+  const { count } = req.query;
+  const { sort } = req.query;
 
-  let productReviews = {
+  const productReviews = {
     product: product_id,
-    page: page,
-    count: count,
+    page,
+    count,
     reviews: [],
-  }
-  console.log('hello reviews', product_id, page, count, sort)
-  // res.status(200).send(`${page} page of reviews, ${count} each, sorted by ${sort} for ${product_id}; ${productReviews}`)
-  res.status(200).send({this: "worked", value: 10000})
+  };
 
-})
-
-
-//Get product review metadata
-app.get('/reviews/meta', function (req, res) {
-  const product_id = req.query.product_id;
-
-  //Execute db read/find based on product_id
-
-  let reviewMetadata = {
-    product_id: product_id,
-    ratings: {
-      1: null,
-      2: null,
-      3: null,
-      4: null,
-      5: null,
-    },
-    recommended: {
-      0: null,
-      1: null,
-    },
-    characteristics: {
-      characteristic: { characteristic_id: null },
+  // Execute db read/find based on product_id
+  db.query(`SELECT * FROM reviews WHERE product_id = ${product_id} AND reported = false`, (err, response) => {
+    if (err) {
+      // console.log(err.stack);
+      res.status(404).send(err.stack);
+    } else {
+      productReviews.reviews.push(response.rows);
+      response.rows.forEach((row) => {
+        memcache.ratings[row.rating] += 1;
+        if (row.recommend === false) {
+          memcache.recommended[0] += 1;
+        } else {
+          memcache.recommended[1] += 1;
+        }
+      });
+      res.status(200).send(productReviews);
     }
-  }
-  console.log('hello reviews meta', req.query.product_id)
-  res.status(200).send(`reviews metadata for ${product_id}`)
-})
+  });
+});
 
-//Post new reviews to the database
-app.post('/reviews', function (req, res) {
-  //parse req.query
-  const product_id = req.query.product_id;
-  const rating = req.query.rating;
-  const summary = req.query.summary;
-  const body = req.query.body;
-  const recommend = req.query.recommend;
-  const name = req.query.name;
-  const email = req.query.email;
-  const photos = req.query.photos;
-  const characteristics = req.query.characteristics;
+// Get product review metadata
+app.get('/reviews/meta', (req, res) => {
+  const { product_id } = req.query;
 
-  //Execute db create for review
+  const reviewMetadata = {
+    product_id,
+    ratings: memcache.ratings,
+    recommended: memcache.recommended,
+    characteristics: {},
+  };
 
-  //Execute db update for characteristics
+  // Execute db read/find based on product_id
+  db.query(`SELECT * FROM characteristics WHERE product_id = ${product_id}`, (err, response) => {
+    if (err) {
+      res.status(404).send(err.stack);
+    } else {
+      const characteristics = [];
+      const characteristicIds = [];
+      response.rows.forEach((row) => {
+        characteristics.push(row.name);
+        characteristicIds.push(row.id);
+      });
 
-  res.sendStatus(201)
-})
+      const query = `SELECT characteristic_id, AVG(value)::NUMERIC(10,4) AS total FROM characteristic_reviews WHERE characteristic_id = ANY(Array[${characteristicIds}]) GROUP BY characteristic_id ORDER BY characteristic_id`;
+      db.query(query, (error, resp) => {
+        if (error) {
+          res.status(404).send(error.stack);
+        } else {
+          let index = 0;
+          resp.rows.forEach((row) => {
+            reviewMetadata.characteristics[characteristics[index]] = {
+              id: row.characteristic_id,
+              value: row.total,
+            };
+            index += 1;
+          });
+          res.status(200).send(reviewMetadata);
+        }
+      });
+    }
+  });
+  clearMemcache();
+});
 
-//Mark a review as helpful or report it
-app.put('/reviews/:q/:b', function (req, res) {
+// Post new reviews to the database
+app.post('/reviews', (req, res) => {
+  // parse req.query
+  const { product_id } = req.query;
+  const { rating } = req.query;
+  const { summary } = req.query;
+  const { body } = req.query;
+  const { recommend } = req.query;
+  const { name } = req.query;
+  const { email } = req.query;
+  const { photos } = req.query;
+  const { characteristics } = req.query;
+
+  // Execute db create for review
+
+  // Execute db update for characteristics
+
+  res.sendStatus(201);
+});
+
+// Mark a review as helpful or report it
+app.put('/reviews/:q/:b', (req, res) => {
   const review_id = req.params.q;
   const markAs = req.params.b;
   // console.log(review_id)
   // console.log('mark as: ', markAs)
 
-  //Execute db update based on 'markAs' variable for the given review_Id
+  // Execute db update based on 'markAs' variable for the given review_Id
 
   res.sendStatus(204);
-})
+});
 
-app.listen(port)
+app.listen(port);

@@ -1,42 +1,57 @@
-DROP DATABASE IF EXISTS reviews;
-
-CREATE DATABASE reviews;
-
-USE reviews;
-
 CREATE TABLE reviews(
-   review_id SERIAL PRIMARY KEY,
+   id INTEGER NOT NULL PRIMARY KEY,
+   product_id INTEGER NOT NULL,
    rating SMALLINT,
-   summary VARCHAR(100) NOT NULL,
+   date VARCHAR(10) NOT NULL,
+   summary VARCHAR(150) NOT NULL,
    body TEXT NOT NULL,
-   reviewer_name VARCHAR(60) NOT NULL,
-   email VARCHAR(60) NOT NULL,
-   response TEXT,
    recommend BOOLEAN,
-   date TIMESTAMP,
-   helpfulness SMALLINT,
    reported BOOLEAN,
+   reviewer_name VARCHAR(60) NOT NULL,
+   reviewer_email VARCHAR(60) NOT NULL,
+   response TEXT,
+   helpfulness SMALLINT
 );
+
+CREATE INDEX product_reviews_not_reported ON reviews (product_id, reported);
 
 CREATE TABLE images(
-  review_id INTEGER NOT NULL REFERENCES reviews,
   id SERIAL,
-  url TEXT NOT NULL,
+  review_id INTEGER NOT NULL REFERENCES reviews,
+  url TEXT NOT NULL
 );
 
-CREATE TABLE product_reviews(
-  product_id INTEGER NOT NULL,
-  review_id INTEGER NOT NULL REFERENCES reviews,
-);
+CREATE INDEX review_id ON images (review_id);
+
+-- CREATE TABLE characteristics(
+--   id SERIAL,
+--   product_id INTEGER NOT NULL,
+--   name VARCHAR(20) NOT NULL,
+--   total_from_reviews INTEGER,
+--   total_reviews INTEGER
+-- );
 
 CREATE TABLE characteristics(
-  characteristic_id SERIAL,
-  characteristic VARCHAR(20) NOT NULL,
-  total_from_reviews INTEGER,
-  total_reviews INTEGER,
+  id SERIAL PRIMARY KEY,
+  product_id INTEGER NOT NULL,
+  name VARCHAR(20) NOT NULL
 );
 
-CREATE TABLE product_characteristics(
-  product_id INTEGER NOT NULL,
+CREATE INDEX product_id ON characteristics (product_id);
+
+CREATE TABLE characteristic_reviews(
+  id SERIAL,
   characteristic_id INTEGER NOT NULL REFERENCES characteristics,
+  review_id INTEGER NOT NULL REFERENCES reviews,
+  value INTEGER NOT NULL
 );
+
+CREATE INDEX characteristic_id ON characteristic_reviews (characteristic_id);
+
+COPY reviews FROM '/Users/jacobwpeterson/Downloads/reviews_cleaned.csv' WITH (FORMAT CSV);
+
+COPY images FROM '/Users/jacobwpeterson/Downloads/reviews_photos_cleaned.csv' WITH (FORMAT CSV);
+
+COPY characteristics FROM '/Users/jacobwpeterson/Downloads/characteristics.csv' WITH HEADER CSV;
+
+COPY characteristic_reviews FROM '/Users/jacobwpeterson/Downloads/characteristic_reviews.csv' WITH HEADER CSV;
