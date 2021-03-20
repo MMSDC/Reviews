@@ -6,42 +6,12 @@ const app = express();
 
 const port = 3002;
 
-let memcache = {
-  ratings: {
-    1: 0,
-    2: 0,
-    3: 0,
-    4: 0,
-    5: 0,
-  },
-  recommended: {
-    0: 0,
-    1: 0,
-  },
-};
-
-const clearMemcache = () => {
-  memcache = {
-    ratings: {
-      1: 0,
-      2: 0,
-      3: 0,
-      4: 0,
-      5: 0,
-    },
-    recommended: {
-      0: 0,
-      1: 0,
-    },
-  };
-};
+const memcache = {};
 
 app.use(express.json());
 
 // Get all product reviews
 app.get('/reviews', (req, res) => {
-  clearMemcache();
-
   const { product_id } = req.query;
   const { page } = req.query;
   const { count } = req.query;
@@ -54,6 +24,21 @@ app.get('/reviews', (req, res) => {
     reviews: [],
   };
 
+  const memModel = {
+    isNeeded: true,
+    ratings: {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    },
+    recommended: {
+      0: 0,
+      1: 0,
+    },
+  };
+
   // Execute db read/find based on product_id
   db.query(`SELECT * FROM reviews WHERE product_id = ${product_id} AND reported = false`, (err, response) => {
     if (err) {
@@ -62,16 +47,19 @@ app.get('/reviews', (req, res) => {
     } else {
       productReviews.reviews.push(response.rows);
       response.rows.forEach((row) => {
-        memcache.ratings[row.rating] += 1;
+        memModel.ratings[row.rating] += 1;
         if (row.recommend === false) {
-          memcache.recommended[0] += 1;
+          memModel.recommended[0] += 1;
         } else {
-          memcache.recommended[1] += 1;
+          memModel.recommended[1] += 1;
         }
       });
+      memcache[product_id] = memModel;
       res.status(200).send(productReviews);
+      console.log(memcache);
     }
   });
+  // delete memcache[product_id];
 });
 
 // Get product review metadata
@@ -80,13 +68,15 @@ app.get('/reviews/meta', (req, res) => {
 
   const reviewMetadata = {
     product_id,
-    ratings: memcache.ratings,
-    recommended: memcache.recommended,
+    ratings: memcache[product_id].ratings,
+    recommended: memcache[product_id].recommended,
     characteristics: {},
   };
 
   // Execute db read/find based on product_id
   db.query(`SELECT * FROM characteristics WHERE product_id = ${product_id}`, (err, response) => {
+    memcache[product_id].isNeeded = false;
+
     if (err) {
       res.status(404).send(err.stack);
     } else {
@@ -115,7 +105,10 @@ app.get('/reviews/meta', (req, res) => {
       });
     }
   });
-  clearMemcache();
+  if (!memcache[product_id].isNeeded) {
+    delete memcache[product_id];
+  }
+  console.log(memcache);
 });
 
 // Post new reviews to the database
