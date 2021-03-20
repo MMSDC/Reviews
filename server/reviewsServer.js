@@ -56,7 +56,7 @@ app.get('/reviews', (req, res) => {
       });
       memcache[product_id] = memModel;
       res.status(200).send(productReviews);
-      console.log(memcache);
+      // console.log(memcache);
     }
   });
   // delete memcache[product_id];
@@ -105,10 +105,9 @@ app.get('/reviews/meta', (req, res) => {
       });
     }
   });
-  if (!memcache[product_id].isNeeded) {
+  if (memcache[product_id].isNeeded === false) {
     delete memcache[product_id];
   }
-  console.log(memcache);
 });
 
 // Post new reviews to the database

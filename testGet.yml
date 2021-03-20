@@ -1,0 +1,18 @@
+config:
+  target: "http://localhost:3002/reviews"
+  phases:
+    - duration: 5
+      arrivalRate: 1000
+  payload:
+    path: "/Users/jacobwpeterson/Downloads/numbers.csv"
+    fields:
+      - "product_id"
+    order: sequence
+    skipHeader: true
+scenarios:
+  - name: "test productid endpoint"
+    flow:
+    - get:
+        url: "/?product_id={{product_id}}"
+    - get:
+        url: "/meta?product_id={{product_id}}"
