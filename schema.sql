@@ -21,14 +21,37 @@ CREATE TABLE images(
   url TEXT NOT NULL
 );
 
+CREATE INDEX review_id ON images (review_id);
+
+-- CREATE TABLE characteristics(
+--   id SERIAL,
+--   product_id INTEGER NOT NULL,
+--   name VARCHAR(20) NOT NULL,
+--   total_from_reviews INTEGER,
+--   total_reviews INTEGER
+-- );
+
 CREATE TABLE characteristics(
-  id SERIAL,
+  id SERIAL PRIMARY KEY,
   product_id INTEGER NOT NULL,
-  name VARCHAR(20) NOT NULL,
-  total_from_reviews INTEGER,
-  total_reviews INTEGER
+  name VARCHAR(20) NOT NULL
 );
 
+CREATE INDEX product_id ON characteristics (product_id);
+
+CREATE TABLE characteristic_reviews(
+  id SERIAL,
+  characteristic_id INTEGER NOT NULL REFERENCES characteristics,
+  review_id INTEGER NOT NULL REFERENCES reviews,
+  value INTEGER NOT NULL
+);
+
+CREATE INDEX characteristic_id ON characteristic_reviews (characteristic_id);
+
 COPY reviews FROM '/Users/jacobwpeterson/Downloads/reviews_cleaned.csv' WITH (FORMAT CSV);
+
 COPY images FROM '/Users/jacobwpeterson/Downloads/reviews_photos_cleaned.csv' WITH (FORMAT CSV);
-COPY characteristics (id, product_id, name) FROM '/Users/jacobwpeterson/Downloads/characteristics.csv' WITH (FORMAT CSV)v;
+
+COPY characteristics FROM '/Users/jacobwpeterson/Downloads/characteristics.csv' WITH HEADER CSV;
+
+COPY characteristic_reviews FROM '/Users/jacobwpeterson/Downloads/characteristic_reviews.csv' WITH HEADER CSV;

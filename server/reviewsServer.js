@@ -6,10 +6,42 @@ const app = express();
 
 const port = 3002;
 
+let memcache = {
+  ratings: {
+    1: 0,
+    2: 0,
+    3: 0,
+    4: 0,
+    5: 0,
+  },
+  recommended: {
+    0: 0,
+    1: 0,
+  },
+};
+
+const clearMemcache = () => {
+  memcache = {
+    ratings: {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    },
+    recommended: {
+      0: 0,
+      1: 0,
+    },
+  };
+};
+
 app.use(express.json());
 
 // Get all product reviews
 app.get('/reviews', (req, res) => {
+  clearMemcache();
+
   const { product_id } = req.query;
   const { page } = req.query;
   const { count } = req.query;
@@ -29,6 +61,14 @@ app.get('/reviews', (req, res) => {
       res.status(404).send(err.stack);
     } else {
       productReviews.reviews.push(response.rows);
+      response.rows.forEach((row) => {
+        memcache.ratings[row.rating] += 1;
+        if (row.recommend === false) {
+          memcache.recommended[0] += 1;
+        } else {
+          memcache.recommended[1] += 1;
+        }
+      });
       res.status(200).send(productReviews);
     }
   });
@@ -38,27 +78,44 @@ app.get('/reviews', (req, res) => {
 app.get('/reviews/meta', (req, res) => {
   const { product_id } = req.query;
 
-  // Execute db read/find based on product_id
-
   const reviewMetadata = {
     product_id,
-    ratings: {
-      1: null,
-      2: null,
-      3: null,
-      4: null,
-      5: null,
-    },
-    recommended: {
-      0: null,
-      1: null,
-    },
-    characteristics: {
-      characteristic: { characteristic_id: null },
-    },
+    ratings: memcache.ratings,
+    recommended: memcache.recommended,
+    characteristics: {},
   };
-  console.log('hello reviews meta', req.query.product_id);
-  res.status(200).send(`reviews metadata for ${product_id}`);
+
+  // Execute db read/find based on product_id
+  db.query(`SELECT * FROM characteristics WHERE product_id = ${product_id}`, (err, response) => {
+    if (err) {
+      res.status(404).send(err.stack);
+    } else {
+      const characteristics = [];
+      const characteristicIds = [];
+      response.rows.forEach((row) => {
+        characteristics.push(row.name);
+        characteristicIds.push(row.id);
+      });
+
+      const query = `SELECT characteristic_id, AVG(value)::NUMERIC(10,4) AS total FROM characteristic_reviews WHERE characteristic_id = ANY(Array[${characteristicIds}]) GROUP BY characteristic_id ORDER BY characteristic_id`;
+      db.query(query, (error, resp) => {
+        if (error) {
+          res.status(404).send(error.stack);
+        } else {
+          let index = 0;
+          resp.rows.forEach((row) => {
+            reviewMetadata.characteristics[characteristics[index]] = {
+              id: row.characteristic_id,
+              value: row.total,
+            };
+            index += 1;
+          });
+          res.status(200).send(reviewMetadata);
+        }
+      });
+    }
+  });
+  clearMemcache();
 });
 
 // Post new reviews to the database
