@@ -42,7 +42,6 @@ app.get('/reviews', (req, res) => {
   // Execute db read/find based on product_id
   db.query(`SELECT * FROM reviews WHERE product_id = ${product_id} AND reported = false`, (err, response) => {
     if (err) {
-      // console.log(err.stack);
       res.status(404).send(err.stack);
     } else {
       productReviews.reviews.push(response.rows);
@@ -133,13 +132,26 @@ app.post('/reviews', (req, res) => {
 // Mark a review as helpful or report it
 app.put('/reviews/:q/:b', (req, res) => {
   const review_id = req.params.q;
-  const markAs = req.params.b;
-  // console.log(review_id)
-  // console.log('mark as: ', markAs)
+  const fieldToUpdate = req.params.b;
 
-  // Execute db update based on 'markAs' variable for the given review_Id
-
-  res.sendStatus(204);
+  // Execute db update based on 'fieldToUpdate' variable for the given review_Id
+  if (fieldToUpdate === 'report') {
+    db.query(`UPDATE reviews SET reported = true WHERE id = ${review_id}`, (err) => {
+      if (err) {
+        res.status(404).send(err);
+      } else {
+        res.sendStatus(204);
+      }
+    });
+  } else {
+    db.query(`UPDATE reviews SET helpfulness = helpfulness + 1 WHERE id = ${review_id}`, (err) => {
+      if (err) {
+        res.status(404).send(err);
+      } else {
+        res.sendStatus(204);
+      }
+    });
+  }
 });
 
 app.listen(port);
