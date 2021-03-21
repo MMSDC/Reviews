@@ -17,6 +17,10 @@ app.get('/reviews', (req, res) => {
   const { count } = req.query;
   const { sort } = req.query;
 
+  if (memcache[product_id]) {
+    memcache[product_id].isNeeded = true;
+  }
+
   const productReviews = {
     product: product_id,
     page,
