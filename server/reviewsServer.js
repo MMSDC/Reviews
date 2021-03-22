@@ -6,22 +6,30 @@ const app = express();
 
 const port = 3002;
 
-let memcache = {
-  ratings: {
-    1: 0,
-    2: 0,
-    3: 0,
-    4: 0,
-    5: 0,
-  },
-  recommended: {
-    0: 0,
-    1: 0,
-  },
-};
+const memcache = {};
 
-const clearMemcache = () => {
-  memcache = {
+app.use(express.json());
+
+// Get all product reviews
+app.get('/reviews', (req, res) => {
+  const { product_id } = req.query;
+  const { page } = req.query;
+  const { count } = req.query;
+  const { sort } = req.query;
+
+  if (memcache[product_id]) {
+    memcache[product_id].isNeeded = true;
+  }
+
+  const productReviews = {
+    product: product_id,
+    page,
+    count,
+    reviews: [],
+  };
+
+  const memModel = {
+    isNeeded: true,
     ratings: {
       1: 0,
       2: 0,
@@ -34,44 +42,27 @@ const clearMemcache = () => {
       1: 0,
     },
   };
-};
-
-app.use(express.json());
-
-// Get all product reviews
-app.get('/reviews', (req, res) => {
-  clearMemcache();
-
-  const { product_id } = req.query;
-  const { page } = req.query;
-  const { count } = req.query;
-  const { sort } = req.query;
-
-  const productReviews = {
-    product: product_id,
-    page,
-    count,
-    reviews: [],
-  };
 
   // Execute db read/find based on product_id
   db.query(`SELECT * FROM reviews WHERE product_id = ${product_id} AND reported = false`, (err, response) => {
     if (err) {
-      // console.log(err.stack);
       res.status(404).send(err.stack);
     } else {
       productReviews.reviews.push(response.rows);
       response.rows.forEach((row) => {
-        memcache.ratings[row.rating] += 1;
+        memModel.ratings[row.rating] += 1;
         if (row.recommend === false) {
-          memcache.recommended[0] += 1;
+          memModel.recommended[0] += 1;
         } else {
-          memcache.recommended[1] += 1;
+          memModel.recommended[1] += 1;
         }
       });
+      memcache[product_id] = memModel;
       res.status(200).send(productReviews);
+      // console.log(memcache);
     }
   });
+  // delete memcache[product_id];
 });
 
 // Get product review metadata
@@ -80,13 +71,15 @@ app.get('/reviews/meta', (req, res) => {
 
   const reviewMetadata = {
     product_id,
-    ratings: memcache.ratings,
-    recommended: memcache.recommended,
+    ratings: memcache[product_id].ratings,
+    recommended: memcache[product_id].recommended,
     characteristics: {},
   };
 
   // Execute db read/find based on product_id
   db.query(`SELECT * FROM characteristics WHERE product_id = ${product_id}`, (err, response) => {
+    memcache[product_id].isNeeded = false;
+
     if (err) {
       res.status(404).send(err.stack);
     } else {
@@ -115,7 +108,9 @@ app.get('/reviews/meta', (req, res) => {
       });
     }
   });
-  clearMemcache();
+  if (memcache[product_id].isNeeded === false) {
+    delete memcache[product_id];
+  }
 });
 
 // Post new reviews to the database
@@ -141,13 +136,26 @@ app.post('/reviews', (req, res) => {
 // Mark a review as helpful or report it
 app.put('/reviews/:q/:b', (req, res) => {
   const review_id = req.params.q;
-  const markAs = req.params.b;
-  // console.log(review_id)
-  // console.log('mark as: ', markAs)
+  const fieldToUpdate = req.params.b;
 
-  // Execute db update based on 'markAs' variable for the given review_Id
-
-  res.sendStatus(204);
+  // Execute db update based on 'fieldToUpdate' variable for the given review_Id
+  if (fieldToUpdate === 'report') {
+    db.query(`UPDATE reviews SET reported = true WHERE id = ${review_id}`, (err) => {
+      if (err) {
+        res.status(404).send(err);
+      } else {
+        res.sendStatus(204);
+      }
+    });
+  } else {
+    db.query(`UPDATE reviews SET helpfulness = helpfulness + 1 WHERE id = ${review_id}`, (err) => {
+      if (err) {
+        res.status(404).send(err);
+      } else {
+        res.sendStatus(204);
+      }
+    });
+  }
 });
 
 app.listen(port);
